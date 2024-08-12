@@ -1,0 +1,354 @@
+openapi: 3.0.0
+info:
+  title: LeoVegas NodeJS Tests
+  version: 1.0.0
+  contact:
+    name: LeoVegas
+    url: https://leovegasgroup.com/
+servers:
+  - url: http://localhost:3000/api
+    description: Local server
+
+components:
+  securitySchemes:
+    bearerAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ResponseUser:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User id
+        name:
+          type: string
+          description: User name
+        email:
+          type: string
+          description: User email
+        role:
+          type: boolean
+          description: User role
+        createdAt:
+          type: string
+          description: User createdAt
+        updatedAt:
+          type: string
+          description: User updatedAt
+
+    Error401:
+      type: object
+      properties:
+        errorType:
+          type: string
+          description: Error code name -> AUTHORIZATION_ERROR
+        message:
+          type: string
+          description: Message with the context, function name and descriptive message of the reason why the error was thrown.
+    Error404:
+      type: object
+      properties:
+        errorType:
+          type: string
+          description: Error code name -> NOT_FOUND_ERROR
+        message:
+          type: string
+          description: Message with the context, function name and descriptive message of the reason why the error was thrown.
+    Error500:
+      type: object
+      properties:
+        errorType:
+          type: string
+          description: Error code name -> SERVER_ERROR
+        message:
+          type: string
+          description: Generic message that DOES NOT provide relevant information about the error.
+
+  responses:
+    401Unauthorized:
+      description: Unauthorized access.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error401'
+          examples:
+            userType:
+              value:
+                errorType: 'AUTHORIZATION_ERROR'
+                message: 'Access denied'
+              summary: Your USER_TYPE it is not allowed to access this function.
+            noAssociation:
+              value:
+                errorType: 'AUTHORIZATION_ERROR'
+                message: 'Access denied'
+              summary: The requested Entity it is not associated with your user.
+    404NotFound:
+      description: Requested data not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error404'
+          examples:
+            notFound:
+              value:
+                errorType: 'NOT_FOUND_ERROR'
+                message: 'Entity.function() error: ${Entity} not found.'
+              summary: The requested Entity was not found in the database.
+    500ServerError:
+      description: The application faced an unhandled error, this response DOES NOT provide relevant information about the error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error500'
+          examples:
+            serverError:
+              value:
+                errorType: 'SERVER_ERROR'
+                message: 'Unhandled Error'
+              summary: Unhandled error
+
+paths:
+  /register:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - Routes
+      summary: Registers a user.
+      requestBody:
+        description: Register user payload.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: number
+                password:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '500':
+          $ref: '#/components/responses/500ServerError'
+        '200':
+          description: The created user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+                  user:
+                    $ref: '#/components/schemas/ResponseUser'
+              example:
+                User:
+                  value:
+                    message: 'User registered successfully'
+                    user:
+                      id: 'test-user-id-1'
+                      name: 'Jon Doe'
+                      email: 'jondoe@example.com'
+                      role: 'AMDIN'
+                      createdAt: '2024-08-05 11:20:13.819'
+                      updatedAt: '2024-08-05 11:20:13.819'
+
+  /user/list:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Routes
+      summary: Fetches an array of Users (with limit and offset).
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return.
+      responses:
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500ServerError'
+        '200':
+          description: The fetched users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ResponseUser'
+              example:
+                User:
+                  value:
+                    message: 'Users fetched successfully'
+                    users:
+                      - id: 'test-user-id-1'
+                        name: 'Jon Doe'
+                        email: 'jondoe@example.com'
+                        role: 'AMDIN'
+                        createdAt: '2024-08-05 11:20:13.819'
+                        updatedAt: '2024-08-05 11:20:13.819'
+                      - id: 'test-user-id-2'
+                        name: 'Peter Parker'
+                        email: 'petterparker@example.com'
+                        role: 'USER'
+                        createdAt: '2024-08-05 11:25:17.345'
+                        updatedAt: '2024-08-05 11:25:17.345'
+
+  /user/{:id}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Routes
+      summary: Fetches a user by its id.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Id of the user to be fetched.
+      responses:
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500ServerError'
+        '200':
+          description: The fetched user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+                  user:
+                    $ref: '#/components/schemas/ResponseUser'
+              example:
+                User:
+                  value:
+                    message: 'User fetched successfully'
+                    user:
+                      id: 'test-user-id-1'
+                      name: 'Jon Doe'
+                      email: 'jondoe@example.com'
+                      role: 'AMDIN'
+                      createdAt: '2024-08-05 11:20:13.819'
+                      updatedAt: '2024-08-05 11:20:13.819'
+
+    patch:
+      security:
+        - bearerAuth: []
+      tags:
+        - Routes
+      summary: Updates a user by its id.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Id of the user to be updated.
+      responses:
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500ServerError'
+        '200':
+          description: The updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+                  user:
+                    $ref: '#/components/schemas/ResponseUser'
+              example:
+                User:
+                  value:
+                    message: 'User updated successfully'
+                    user:
+                      id: 'test-user-id-1'
+                      name: 'Bob Ross'
+                      email: 'bobross@example.com'
+                      role: 'AMDIN'
+                      createdAt: '2024-08-05 11:20:13.819'
+                      updatedAt: '2024-08-05 12:30:07.235'
+
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - Routes
+      summary: Deletes a user by its id.
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Id of the user to be deleted.
+      responses:
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500ServerError'
+        '200':
+          description: The deleted user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Success message
+                  user:
+                    $ref: '#/components/schemas/ResponseUser'
+              example:
+                User:
+                  value:
+                    message: 'User deleted successfully'
+                    user:
+                      id: 'test-user-id-2'
+                      name: 'Petter Parker'
+                      email: 'petterparker@example.com'
+                      role: 'USER'
+                      createdAt: '2024-08-05 11:25:17.345'
+                      updatedAt: '2024-08-05 11:25:17.345'
